@@ -89,6 +89,10 @@ Centralized monitoring interface for intelligent alerts and anomaly notification
 <img width="1909" height="1001" alt="image" src="https://github.com/user-attachments/assets/3f795c25-f56a-4e7b-99c2-1660ad21c5bd" />
 
 
+
+## Company Analysis
+<img width="1910" height="997" alt="image" src="https://github.com/user-attachments/assets/a4c7a11e-d035-4826-aa5b-d4af8e8f2ca3" />
+
 ---
 
 # 🎯 Vision
