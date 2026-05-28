@@ -7,6 +7,8 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import StockAnalysis from "@/pages/stock";
 import Chat from "@/pages/chat";
+import Analytics from "@/pages/analytics";
+import SettingsPage from "@/pages/settings";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +19,8 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/stock/:ticker" component={StockAnalysis} />
       <Route path="/chat" component={Chat} />
+      <Route path="/analytics" component={Analytics} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );
