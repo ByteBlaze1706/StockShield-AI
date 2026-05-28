@@ -1,0 +1,56 @@
+=========================================
+ STOCKSHIELD AI - SYSTEM ARCHITECTURE
+=========================================
+
+1. OVERVIEW
+-----------
+StockShield AI is a modern financial intelligence platform designed to identify unusual market behavior, detect suspicious trading activity, and uncover hidden anomalies using AI-driven analytics. The repository is structured as a pnpm monorepo.
+
+
+2. SYSTEM ARCHITECTURE & DATA FLOW
+----------------------------------
+
+   [ USER / BROWSER ]
+           │
+           │ (HTTPS / React Query / SSE Streaming)
+           ▼
+   [ Vite Frontend App (@workspace/stockshield) ]
+           │
+           │ (REST API & Server-Sent Events)
+           ▼
+   [ Express API Server (@workspace/api-server) ]
+      ├───► [ Google Gemini 2.5 Flash API ] (via @google/genai SDK)
+      └───► [ Drizzle ORM ] ───► [ PostgreSQL Database ]
+
+
+3. MONOREPO STRUCTURE
+---------------------
+
+The project is structured using pnpm workspaces:
+
+├── artifacts/
+│   ├── stockshield/      - React + Vite SPA Frontend (runs on port 21568)
+│   ├── api-server/       - Express 5 API Server (runs on port 8080)
+│   └── mockup-sandbox/   - Interactive mockup sandbox
+├── lib/
+│   ├── db/               - PostgreSQL tables & schema (Drizzle ORM)
+│   ├── api-spec/         - OpenAPI Spec (Source of truth)
+│   ├── api-client-react/ - Generated React Query hooks (via Orval)
+│   └── api-zod/          - Generated Zod schemas for validation
+└── package.json          - Monorepo root and workspace configuration
+
+
+4. KEY DESIGN DECISIONS
+-----------------------
+
+* Contract-First API: 
+  The OpenAPI spec in `lib/api-spec/` serves as the single source of truth. Orval automatically generates React Query hooks and Zod schemas directly from this spec.
+
+* Streaming AI Chat (SSE):
+  ShieldBot uses Server-Sent Events (SSE) instead of WebSockets. This simplifies the backend Express setup, works perfectly through Replit proxies, and enables fast response stream parsing.
+
+* Gemini Integration:
+  AI capabilities (fraud scoring, conversation generation, anomaly insights) are handled directly by the backend API server using the modern `@google/genai` SDK and authorized via the `GEMINI_API_KEY` secret.
+
+* UI Design System:
+  A futuristic, dark-themed responsive user interface built using React, Tailwind CSS, Framer Motion, and Recharts. The theme is strictly dark, enforced globally at startup.
