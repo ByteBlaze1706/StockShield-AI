@@ -6,6 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface WatchlistItem {
+  id: number;
+  ticker: string;
+  stockName: string;
+  addedAt: Date;
+  riskScore: number;
+  currentPrice: number;
+  change: number;
 }

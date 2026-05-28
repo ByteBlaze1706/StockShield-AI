@@ -5,7 +5,10 @@
  * StockShield AI - Stock fraud detection and analysis API
  * OpenAPI spec version: 0.1.0
  */
+import type { RiskFactorSeverity } from './riskFactorSeverity';
 
-export interface HealthStatus {
-  status: string;
+export interface RiskFactor {
+  label: string;
+  severity: RiskFactorSeverity;
+  description: string;
 }
