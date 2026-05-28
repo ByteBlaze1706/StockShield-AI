@@ -1,13 +1,16 @@
 import { Router } from "express";
 import { db, watchlistTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { AddToWatchlistBody } from "@workspace/api-zod";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const items = await db.select().from(watchlistTable);
+    const userId = req.isAuthenticated() ? req.user.id : null;
+    const items = await db.select().from(watchlistTable).where(
+      userId ? eq(watchlistTable.userId, userId) : isNull(watchlistTable.userId)
+    );
     res.json(items.map(i => ({
       id: i.id,
       ticker: i.ticker,
@@ -30,6 +33,7 @@ router.post("/", async (req, res) => {
     return;
   }
   try {
+    const userId = req.isAuthenticated() ? req.user.id : null;
     const PRICE_MAP: Record<string, { price: number; change: number; riskScore: number }> = {
       GME: { price: 14.22, change: 3.45, riskScore: 87 },
       AAPL: { price: 189.45, change: 1.23, riskScore: 12 },
@@ -39,8 +43,13 @@ router.post("/", async (req, res) => {
       AMC: { price: 4.87, change: 1.12, riskScore: 82 },
       BBBY: { price: 0.11, change: 0.03, riskScore: 96 },
     };
-    const info = PRICE_MAP[parsed.data.ticker.toUpperCase()] ?? { price: 50 + Math.random() * 200, change: (Math.random() - 0.5) * 5, riskScore: Math.round(Math.random() * 100) };
+    const info = PRICE_MAP[parsed.data.ticker.toUpperCase()] ?? {
+      price: 50 + Math.random() * 200,
+      change: (Math.random() - 0.5) * 5,
+      riskScore: Math.round(Math.random() * 100),
+    };
     const [item] = await db.insert(watchlistTable).values({
+      userId,
       ticker: parsed.data.ticker.toUpperCase(),
       stockName: parsed.data.stockName,
       riskScore: info.riskScore,
@@ -66,7 +75,12 @@ router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
-    await db.delete(watchlistTable).where(eq(watchlistTable.id, id));
+    const userId = req.isAuthenticated() ? req.user.id : null;
+    await db.delete(watchlistTable).where(
+      userId
+        ? and(eq(watchlistTable.id, id), eq(watchlistTable.userId, userId))
+        : and(eq(watchlistTable.id, id), isNull(watchlistTable.userId))
+    );
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Error removing from watchlist");

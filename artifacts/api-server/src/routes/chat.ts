@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, conversationsTable, messagesTable } from "@workspace/db";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, and, isNull } from "drizzle-orm";
 import { CreateConversationBody, SendMessageBody } from "@workspace/api-zod";
 import { GoogleGenAI } from "@google/genai";
 
@@ -21,7 +21,10 @@ Never recommend specific stocks to buy or sell. Always encourage users to consul
 
 router.get("/conversations", async (req, res) => {
   try {
-    const convs = await db.select().from(conversationsTable).orderBy(desc(conversationsTable.createdAt));
+    const userId = req.isAuthenticated() ? req.user.id : null;
+    const convs = await db.select().from(conversationsTable)
+      .where(userId ? eq(conversationsTable.userId, userId) : isNull(conversationsTable.userId))
+      .orderBy(desc(conversationsTable.createdAt));
     res.json(convs.map(c => ({ id: c.id, title: c.title, createdAt: c.createdAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Error fetching conversations");
@@ -33,7 +36,11 @@ router.post("/conversations", async (req, res) => {
   const parsed = CreateConversationBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid body" }); return; }
   try {
-    const [conv] = await db.insert(conversationsTable).values({ title: parsed.data.title }).returning();
+    const userId = req.isAuthenticated() ? req.user.id : null;
+    const [conv] = await db.insert(conversationsTable).values({
+      userId,
+      title: parsed.data.title,
+    }).returning();
     res.status(201).json({ id: conv.id, title: conv.title, createdAt: conv.createdAt.toISOString() });
   } catch (err) {
     req.log.error({ err }, "Error creating conversation");
@@ -45,7 +52,12 @@ router.get("/conversations/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
-    const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id));
+    const userId = req.isAuthenticated() ? req.user.id : null;
+    const [conv] = await db.select().from(conversationsTable).where(
+      userId
+        ? and(eq(conversationsTable.id, id), eq(conversationsTable.userId, userId))
+        : and(eq(conversationsTable.id, id), isNull(conversationsTable.userId))
+    );
     if (!conv) { res.status(404).json({ error: "Conversation not found" }); return; }
     const msgs = await db.select().from(messagesTable).where(eq(messagesTable.conversationId, id)).orderBy(asc(messagesTable.createdAt));
     res.json({
@@ -62,6 +74,13 @@ router.delete("/conversations/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
+    const userId = req.isAuthenticated() ? req.user.id : null;
+    const [conv] = await db.select().from(conversationsTable).where(
+      userId
+        ? and(eq(conversationsTable.id, id), eq(conversationsTable.userId, userId))
+        : and(eq(conversationsTable.id, id), isNull(conversationsTable.userId))
+    );
+    if (!conv) { res.status(404).json({ error: "Conversation not found" }); return; }
     await db.delete(messagesTable).where(eq(messagesTable.conversationId, id));
     await db.delete(conversationsTable).where(eq(conversationsTable.id, id));
     res.status(204).send();

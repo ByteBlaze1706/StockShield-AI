@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const watchlistTable = pgTable("watchlist", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   ticker: text("ticker").notNull(),
   stockName: text("stock_name").notNull(),
   addedAt: timestamp("added_at").defaultNow().notNull(),

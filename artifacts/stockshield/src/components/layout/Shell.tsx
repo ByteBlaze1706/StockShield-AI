@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, LayoutDashboard, MessageSquare, BarChart2, Settings, X, Menu, TrendingUp, TrendingDown } from "lucide-react";
+import { Shield, LayoutDashboard, MessageSquare, BarChart2, Settings, X, Menu, TrendingUp, TrendingDown, LogOut, User, ChevronDown } from "lucide-react";
 import { StockSearch } from "../ui/stock-search";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuthContext } from "@/lib/auth-context";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -41,6 +42,89 @@ function TickerTape() {
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+function UserMenu() {
+  const { user, logout } = useAuthContext();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "User"
+    : "User";
+
+  const initials = user
+    ? ((user.firstName?.[0] ?? "") + (user.lastName?.[0] ?? "")).toUpperCase() || "U"
+    : "U";
+
+  return (
+    <div ref={ref} className="relative p-3">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-border/30 transition-all duration-200 group"
+      >
+        {user?.profileImageUrl ? (
+          <img
+            src={user.profileImageUrl}
+            alt={displayName}
+            className="w-8 h-8 rounded-full object-cover border border-primary/20 shadow-[0_0_10px_-2px_hsl(var(--primary))]"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold shadow-[0_0_10px_-2px_hsl(var(--primary))]">
+            {initials}
+          </div>
+        )}
+        <div className="flex-1 text-left min-w-0">
+          <p className="text-xs font-semibold text-foreground truncate">{displayName}</p>
+          {user?.email && (
+            <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+          )}
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-full left-3 right-3 mb-2 bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl overflow-hidden z-50"
+          >
+            <div className="p-1">
+              <button
+                onClick={() => { navigate("/settings"); setOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </button>
+              <div className="my-1 border-t border-border/30" />
+              <button
+                onClick={() => { logout(); setOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -103,14 +187,17 @@ export function Shell({ children }: ShellProps) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-border/50">
-        <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
-          <p className="text-xs font-semibold text-primary mb-1">Live Monitoring</p>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_2px_rgba(52,211,153,0.5)]" />
-            <p className="text-xs text-muted-foreground">12 assets tracked</p>
+      <div className="border-t border-border/50">
+        <div className="px-3 pt-3 pb-1">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
+            <p className="text-xs font-semibold text-primary mb-1">Live Monitoring</p>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_2px_rgba(52,211,153,0.5)]" />
+              <p className="text-xs text-muted-foreground">12 assets tracked</p>
+            </div>
           </div>
         </div>
+        <UserMenu />
       </div>
     </>
   );
