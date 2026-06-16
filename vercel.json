@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm --filter @workspace/stockshield run build",
+  "outputDirectory": "artifacts/stockshield/dist/public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://stock-shield-ai-api-server.vercel.app/api/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
