@@ -9,7 +9,7 @@ AI-powered market intelligence platform designed to detect suspicious trading ac
 ---
 
 🌐 **Live Demo**
-https://market-sentinel--hekaredevayani.replit.app
+https://stockshield.vercel.app/
 
 🏆 **Devpost Submission**
 https://devpost.com/software/stockshield-ai
