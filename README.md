@@ -9,7 +9,7 @@ AI-powered market intelligence platform designed to detect suspicious trading ac
 ---
 
 🌐 **Live Demo**
-https://market-sentinel--hekaredevayani.replit.app
+[Vercel Deployment](https://stock-shield-ai-api-server.vercel.app)
 
 🏆 **Devpost Submission**
 https://devpost.com/software/stockshield-ai
@@ -58,12 +58,12 @@ Deliver fast and actionable intelligence designed to simplify complex market dat
 
 # 🛠️ Built With
 
-* TypeScript
+* JavaScript
 * React
 * Tailwind CSS
 * Node.js
 * Recharts
-* Replit Deployment
+* Vercel Deployment
 
 ---
 

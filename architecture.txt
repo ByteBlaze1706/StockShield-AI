@@ -47,7 +47,7 @@ The project is structured using pnpm workspaces:
   The OpenAPI spec in `lib/api-spec/` serves as the single source of truth. Orval automatically generates React Query hooks and Zod schemas directly from this spec.
 
 * Streaming AI Chat (SSE):
-  ShieldBot uses Server-Sent Events (SSE) instead of WebSockets. This simplifies the backend Express setup, works perfectly through Replit proxies, and enables fast response stream parsing.
+  ShieldBot uses Server-Sent Events (SSE) instead of WebSockets. This simplifies the backend Express setup, works perfectly through standard reverse proxies, and enables fast response stream parsing.
 
 * Gemini Integration:
   AI capabilities (fraud scoring, conversation generation, anomaly insights) are handled directly by the backend API server using the modern `@google/genai` SDK and authorized via the `GEMINI_API_KEY` secret.
