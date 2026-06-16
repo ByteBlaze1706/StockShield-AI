@@ -10,7 +10,6 @@ AI-powered market intelligence platform designed to detect suspicious trading ac
 
 🌐 **Deployments**
 - **Frontend App**: [https://stockshield.vercel.app](https://stockshield.vercel.app)
-- **Backend API**: [https://stock-shield-ai-api-server.vercel.app](https://stock-shield-ai-api-server.vercel.app)
 
 🏆 **Devpost Submission**
 https://devpost.com/software/stockshield-ai
