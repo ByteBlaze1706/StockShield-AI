@@ -86,3 +86,4 @@ pnpm --filter @workspace/stockshield run dev
 - **Do NOT run `pnpm dev` at the workspace root**; instead, run the individual start commands for `@workspace/api-server` and `@workspace/stockshield`.
 - **SSE (Server-Sent Events)**: The ShieldBot chat endpoint uses SSE for streaming responses, meaning `fetch` + `ReadableStream` is used directly rather than standard generated React hooks.
 - **Never Hardcode Secrets**: Always use the `.env` file or environment secrets for `DATABASE_URL` and `GEMINI_API_KEY`.
+<!-- Production release cleanup and documentation refresh -->

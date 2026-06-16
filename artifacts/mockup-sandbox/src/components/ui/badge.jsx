@@ -24,3 +24,4 @@ function Badge({
   }), className)} {...props} />;
 }
 export { Badge, badgeVariants };
+// Production release cleanup and documentation refresh

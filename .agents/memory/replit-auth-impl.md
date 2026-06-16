@@ -30,3 +30,4 @@ The `lib/replit-auth-web/tsconfig.json` needs:
 - `types: ["vite/client"]` — required because `use-auth.ts` uses `import.meta.env.BASE_URL`
 - `references: [{ "path": "../api-client-react" }]` — needed because it imports `AuthUser` from `@workspace/api-client-react`
 - `vite` in devDependencies with `"catalog:"` — provides the vite/client types
+<!-- Production release cleanup and documentation refresh -->

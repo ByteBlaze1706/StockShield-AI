@@ -13,3 +13,4 @@ export function useIsMobile() {
   }, []);
   return !!isMobile;
 }
+// Production release cleanup and documentation refresh

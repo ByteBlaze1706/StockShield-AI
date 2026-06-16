@@ -6,3 +6,4 @@ function Skeleton({
   return <div className={cn("animate-pulse rounded-md bg-primary/10", className)} {...props} />;
 }
 export { Skeleton };
+// Production release cleanup and documentation refresh

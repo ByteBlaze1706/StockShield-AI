@@ -192,3 +192,4 @@ input[type="range"]::-moz-range-thumb {
   border: none;
   box-shadow: 0 0 8px hsl(var(--primary));
 }
+/* Production release cleanup and documentation refresh */

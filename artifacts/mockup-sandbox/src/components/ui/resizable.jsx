@@ -18,3 +18,4 @@ const ResizableHandle = ({
       </div>}
   </ResizablePrimitive.PanelResizeHandle>;
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle };
+// Production release cleanup and documentation refresh

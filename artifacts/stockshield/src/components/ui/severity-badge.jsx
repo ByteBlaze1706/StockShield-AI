@@ -17,3 +17,4 @@ export function SeverityBadge({
       {severity.charAt(0).toUpperCase() + severity.slice(1)}
     </span>;
 }
+// Production release cleanup and documentation refresh

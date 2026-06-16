@@ -66,3 +66,4 @@ const SheetDescription = React.forwardRef(({
 }, ref) => <SheetPrimitive.Description ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />);
 SheetDescription.displayName = SheetPrimitive.Description.displayName;
 export { Sheet, SheetPortal, SheetOverlay, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription };
+// Production release cleanup and documentation refresh

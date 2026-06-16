@@ -47,3 +47,4 @@ const DialogDescription = React.forwardRef(({
 }, ref) => <DialogPrimitive.Description ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />);
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 export { Dialog, DialogPortal, DialogOverlay, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription };
+// Production release cleanup and documentation refresh

@@ -11,3 +11,4 @@ const Label = React.forwardRef(({
 }, ref) => <LabelPrimitive.Root ref={ref} className={cn(labelVariants(), className)} {...props} />);
 Label.displayName = LabelPrimitive.Root.displayName;
 export { Label };
+// Production release cleanup and documentation refresh

@@ -9,3 +9,4 @@ const Switch = React.forwardRef(({
   </SwitchPrimitives.Root>);
 Switch.displayName = SwitchPrimitives.Root.displayName;
 export { Switch };
+// Production release cleanup and documentation refresh

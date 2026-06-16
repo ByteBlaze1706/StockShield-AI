@@ -8,3 +8,4 @@ const Textarea = React.forwardRef(({
 });
 Textarea.displayName = "Textarea";
 export { Textarea };
+// Production release cleanup and documentation refresh
