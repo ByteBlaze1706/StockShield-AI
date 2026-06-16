@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, conversationsTable, messagesTable } from "@workspace/db";
-import { eq, asc, desc, and, isNull } from "drizzle-orm";
+import { eq, asc, desc, and } from "drizzle-orm";
 import { CreateConversationBody, SendMessageBody } from "@workspace/api-zod";
 import { GoogleGenAI } from "@google/genai";
 const router = Router();
@@ -18,10 +18,19 @@ Your role:
 - Use simple analogies to explain complex concepts
 
 Never recommend specific stocks to buy or sell. Always encourage users to consult a licensed financial advisor for investment decisions.`;
+
 router.get("/conversations", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    const userId = req.isAuthenticated() ? req.user.id : null;
-    const convs = await db.select().from(conversationsTable).where(userId ? eq(conversationsTable.userId, userId) : isNull(conversationsTable.userId)).orderBy(desc(conversationsTable.createdAt));
+    const userId = req.user.id;
+    const convs = await db.select()
+      .from(conversationsTable)
+      .where(eq(conversationsTable.userId, userId))
+      .orderBy(desc(conversationsTable.createdAt));
+
     res.json(convs.map(c => ({
       id: c.id,
       title: c.title,
@@ -36,7 +45,12 @@ router.get("/conversations", async (req, res) => {
     });
   }
 });
+
 router.post("/conversations", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const parsed = CreateConversationBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -45,7 +59,7 @@ router.post("/conversations", async (req, res) => {
     return;
   }
   try {
-    const userId = req.isAuthenticated() ? req.user.id : null;
+    const userId = req.user.id;
     const [conv] = await db.insert(conversationsTable).values({
       userId,
       title: parsed.data.title
@@ -64,7 +78,12 @@ router.post("/conversations", async (req, res) => {
     });
   }
 });
+
 router.get("/conversations/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({
@@ -73,8 +92,16 @@ router.get("/conversations/:id", async (req, res) => {
     return;
   }
   try {
-    const userId = req.isAuthenticated() ? req.user.id : null;
-    const [conv] = await db.select().from(conversationsTable).where(userId ? and(eq(conversationsTable.id, id), eq(conversationsTable.userId, userId)) : and(eq(conversationsTable.id, id), isNull(conversationsTable.userId)));
+    const userId = req.user.id;
+    const [conv] = await db.select()
+      .from(conversationsTable)
+      .where(
+        and(
+          eq(conversationsTable.id, id),
+          eq(conversationsTable.userId, userId)
+        )
+      );
+
     if (!conv) {
       res.status(404).json({
         error: "Conversation not found"
@@ -103,7 +130,12 @@ router.get("/conversations/:id", async (req, res) => {
     });
   }
 });
+
 router.delete("/conversations/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({
@@ -112,8 +144,16 @@ router.delete("/conversations/:id", async (req, res) => {
     return;
   }
   try {
-    const userId = req.isAuthenticated() ? req.user.id : null;
-    const [conv] = await db.select().from(conversationsTable).where(userId ? and(eq(conversationsTable.id, id), eq(conversationsTable.userId, userId)) : and(eq(conversationsTable.id, id), isNull(conversationsTable.userId)));
+    const userId = req.user.id;
+    const [conv] = await db.select()
+      .from(conversationsTable)
+      .where(
+        and(
+          eq(conversationsTable.id, id),
+          eq(conversationsTable.userId, userId)
+        )
+      );
+
     if (!conv) {
       res.status(404).json({
         error: "Conversation not found"
@@ -132,7 +172,12 @@ router.delete("/conversations/:id", async (req, res) => {
     });
   }
 });
+
 router.get("/conversations/:id/messages", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({
@@ -141,6 +186,23 @@ router.get("/conversations/:id/messages", async (req, res) => {
     return;
   }
   try {
+    const userId = req.user.id;
+    const [conv] = await db.select()
+      .from(conversationsTable)
+      .where(
+        and(
+          eq(conversationsTable.id, id),
+          eq(conversationsTable.userId, userId)
+        )
+      );
+
+    if (!conv) {
+      res.status(404).json({
+        error: "Conversation not found"
+      });
+      return;
+    }
+
     const msgs = await db.select().from(messagesTable).where(eq(messagesTable.conversationId, id)).orderBy(asc(messagesTable.createdAt));
     res.json(msgs.map(m => ({
       id: m.id,
@@ -158,7 +220,12 @@ router.get("/conversations/:id/messages", async (req, res) => {
     });
   }
 });
+
 router.post("/conversations/:id/messages", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({
@@ -174,7 +241,16 @@ router.post("/conversations/:id/messages", async (req, res) => {
     return;
   }
   try {
-    const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id));
+    const userId = req.user.id;
+    const [conv] = await db.select()
+      .from(conversationsTable)
+      .where(
+        and(
+          eq(conversationsTable.id, id),
+          eq(conversationsTable.userId, userId)
+        )
+      );
+
     if (!conv) {
       res.status(404).json({
         error: "Conversation not found"
@@ -243,4 +319,5 @@ router.post("/conversations/:id/messages", async (req, res) => {
     }
   }
 });
+
 export { router as chatRouter };

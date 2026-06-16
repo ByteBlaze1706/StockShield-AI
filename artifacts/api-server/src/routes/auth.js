@@ -1,137 +1,168 @@
 import { Router } from "express";
-import { GetCurrentAuthUserResponse, ExchangeMobileAuthorizationCodeBody, ExchangeMobileAuthorizationCodeResponse, LogoutMobileSessionResponse } from "@workspace/api-zod";
+import bcrypt from "bcryptjs";
+import { eq, or } from "drizzle-orm";
+import { RegisterUserBody, LoginUserBody } from "@workspace/api-zod";
 import { db, usersTable } from "@workspace/db";
-import { clearSession, getSessionId, createSession, deleteSession, SESSION_COOKIE, SESSION_TTL } from "../lib/auth.js";
+import { clearSession, getSessionId, createSession, SESSION_COOKIE, SESSION_TTL } from "../lib/auth.js";
 
 const router = Router();
-
-function getSafeReturnTo(value) {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
-  }
-  return value;
-}
 
 function setSessionCookie(res, sid) {
   res.cookie(SESSION_COOKIE, sid, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_TTL
   });
 }
 
-async function upsertUser(claims) {
-  const userData = {
-    id: claims.sub,
-    email: claims.email || null,
-    firstName: claims.first_name || null,
-    lastName: claims.last_name || null,
-    profileImageUrl: claims.profile_image_url || claims.picture
-  };
-  const [user] = await db.insert(usersTable).values(userData).onConflictDoUpdate({
-    target: usersTable.id,
-    set: {
-      ...userData,
-      updatedAt: new Date()
-    }
-  }).returning();
-  return user;
-}
-
 router.get("/auth/user", (req, res) => {
-  res.json(GetCurrentAuthUserResponse.parse({
+  res.json({
     user: req.isAuthenticated() ? req.user : null
-  }));
-});
-
-router.get("/login", async (req, res) => {
-  const returnTo = getSafeReturnTo(req.query.returnTo);
-  const dbUser = await upsertUser({
-    sub: "demo-user-id",
-    email: "demo@stockshield.ai",
-    first_name: "Demo",
-    last_name: "User",
-    profile_image_url: "https://api.dicebear.com/7.x/bottts/svg?seed=demo"
   });
-
-  const now = Math.floor(Date.now() / 1000);
-  const sessionData = {
-    user: {
-      id: dbUser.id,
-      email: dbUser.email,
-      firstName: dbUser.firstName,
-      lastName: dbUser.lastName,
-      profileImageUrl: dbUser.profileImageUrl
-    },
-    expires_at: now + 7 * 24 * 60 * 60
-  };
-
-  const sid = await createSession(sessionData);
-  setSessionCookie(res, sid);
-  res.redirect(returnTo);
 });
 
-router.get("/callback", (req, res) => {
-  res.redirect("/dashboard");
-});
-
-router.get("/logout", async (req, res) => {
-  const sid = getSessionId(req);
-  await clearSession(res, sid);
-  res.redirect("/");
-});
-
-router.post("/mobile-auth/token-exchange", async (req, res) => {
-  const parsed = ExchangeMobileAuthorizationCodeBody.safeParse(req.body);
+router.post("/auth/register", async (req, res) => {
+  const parsed = RegisterUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
-      error: "Missing or invalid required parameters"
+      error: parsed.error.errors[0]?.message || "Invalid registration input"
     });
     return;
   }
-  try {
-    const dbUser = await upsertUser({
-      sub: "demo-user-id",
-      email: "demo@stockshield.ai",
-      first_name: "Demo",
-      last_name: "User",
-      profile_image_url: "https://api.dicebear.com/7.x/bottts/svg?seed=demo"
-    });
 
+  const { username, email, password } = parsed.data;
+
+  try {
+    // Check if user already exists (by username or email)
+    const existing = await db.select().from(usersTable).where(
+      or(
+        eq(usersTable.email, email.toLowerCase()),
+        eq(usersTable.username, username.toLowerCase())
+      )
+    );
+
+    if (existing.length > 0) {
+      res.status(400).json({
+        error: "Username or Email is already registered"
+      });
+      return;
+    }
+
+    // Hash the password securely with bcrypt (10 rounds)
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // Create the new user
+    const [newUser] = await db.insert(usersTable).values({
+      username: username.toLowerCase(),
+      email: email.toLowerCase(),
+      passwordHash,
+      emailVerified: false
+    }).returning();
+
+    // Create secure session
+    const now = Math.floor(Date.now() / 1000);
+    const sessionData = {
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        username: newUser.username,
+        firstName: newUser.firstName || null,
+        lastName: newUser.lastName || null,
+        profileImageUrl: newUser.profileImageUrl || null
+      },
+      expires_at: now + SESSION_TTL / 1000
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+
+    res.status(201).json({
+      user: sessionData.user
+    });
+  } catch (error) {
+    req.log.error({ err: error }, "User registration error");
+    res.status(500).json({
+      error: "Internal server error during registration"
+    });
+  }
+});
+
+router.post("/auth/login", async (req, res) => {
+  const parsed = LoginUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: parsed.error.errors[0]?.message || "Invalid login input"
+    });
+    return;
+  }
+
+  const { email, password } = parsed.data;
+
+  try {
+    const [dbUser] = await db.select().from(usersTable).where(
+      eq(usersTable.email, email.toLowerCase())
+    );
+
+    if (!dbUser) {
+      res.status(401).json({
+        error: "Invalid email or password"
+      });
+      return;
+    }
+
+    // Verify hash
+    const isValid = await bcrypt.compare(password, dbUser.passwordHash);
+    if (!isValid) {
+      res.status(401).json({
+        error: "Invalid email or password"
+      });
+      return;
+    }
+
+    // Create session
     const now = Math.floor(Date.now() / 1000);
     const sessionData = {
       user: {
         id: dbUser.id,
         email: dbUser.email,
-        firstName: dbUser.firstName,
-        lastName: dbUser.lastName,
-        profileImageUrl: dbUser.profileImageUrl
+        username: dbUser.username,
+        firstName: dbUser.firstName || null,
+        lastName: dbUser.lastName || null,
+        profileImageUrl: dbUser.profileImageUrl || null
       },
-      expires_at: now + 7 * 24 * 60 * 60
+      expires_at: now + SESSION_TTL / 1000
     };
 
     const sid = await createSession(sessionData);
-    res.json(ExchangeMobileAuthorizationCodeResponse.parse({
-      token: sid
-    }));
-  } catch (err) {
-    req.log.error({
-      err
-    }, "Mobile token exchange error");
+    setSessionCookie(res, sid);
+
+    res.json({
+      user: sessionData.user
+    });
+  } catch (error) {
+    req.log.error({ err: error }, "User login error");
     res.status(500).json({
-      error: "Token exchange failed"
+      error: "Internal server error during login"
     });
   }
 });
 
-router.post("/mobile-auth/logout", async (req, res) => {
-  const sid = getSessionId(req);
-  if (sid) await deleteSession(sid);
-  res.json(LogoutMobileSessionResponse.parse({
-    success: true
-  }));
+router.post("/auth/logout", async (req, res) => {
+  try {
+    const sid = getSessionId(req);
+    await clearSession(res, sid);
+    res.json({
+      success: true
+    });
+  } catch (error) {
+    req.log.error({ err: error }, "User logout error");
+    res.status(500).json({
+      error: "Internal server error during logout"
+    });
+  }
 });
 
 export default router;

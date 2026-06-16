@@ -89,8 +89,8 @@ function UserMenu() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
-  const displayName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "User" : "User";
-  const initials = user ? ((user.firstName?.[0] ?? "") + (user.lastName?.[0] ?? "")).toUpperCase() || "U" : "U";
+  const displayName = user ? user.username || [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "User" : "User";
+  const initials = user ? (user.username?.[0] || (user.firstName?.[0] ?? "") + (user.lastName?.[0] ?? "")).toUpperCase() || "U" : "U";
   return <div ref={ref} className="relative p-3">
       <button onClick={() => setOpen(v => !v)} className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-border/30 transition-all duration-200 group">
         {user?.profileImageUrl ? <img src={user.profileImageUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-primary/20 shadow-[0_0_10px_-2px_hsl(var(--primary))]" /> : <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold shadow-[0_0_10px_-2px_hsl(var(--primary))]">

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db, alertsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 const router = Router();
+
 const TOP_RISKY_STOCKS = [{
   ticker: "BBBY",
   name: "Bed Bath & Beyond Inc.",
@@ -43,9 +44,19 @@ const TOP_RISKY_STOCKS = [{
   riskScore: 78,
   sector: "Consumer Staples"
 }];
+
 router.get("/stats", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    const allAlerts = await db.select().from(alertsTable).orderBy(desc(alertsTable.detectedAt)).limit(100);
+    const allAlerts = await db.select()
+      .from(alertsTable)
+      .where(eq(alertsTable.userId, req.user.id))
+      .orderBy(desc(alertsTable.detectedAt))
+      .limit(100);
+
     const recent = allAlerts.slice(0, 5);
     res.json({
       totalStocksMonitored: 12,
@@ -73,4 +84,5 @@ router.get("/stats", async (req, res) => {
     });
   }
 });
+
 export { router as dashboardRouter };

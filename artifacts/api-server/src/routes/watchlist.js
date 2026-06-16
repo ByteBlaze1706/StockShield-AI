@@ -1,12 +1,17 @@
 import { Router } from "express";
 import { db, watchlistTable } from "@workspace/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { AddToWatchlistBody } from "@workspace/api-zod";
 const router = Router();
+
 router.get("/", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    const userId = req.isAuthenticated() ? req.user.id : null;
-    const items = await db.select().from(watchlistTable).where(userId ? eq(watchlistTable.userId, userId) : isNull(watchlistTable.userId));
+    const userId = req.user.id;
+    const items = await db.select().from(watchlistTable).where(eq(watchlistTable.userId, userId));
     res.json(items.map(i => ({
       id: i.id,
       ticker: i.ticker,
@@ -25,7 +30,12 @@ router.get("/", async (req, res) => {
     });
   }
 });
+
 router.post("/", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const parsed = AddToWatchlistBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -34,7 +44,7 @@ router.post("/", async (req, res) => {
     return;
   }
   try {
-    const userId = req.isAuthenticated() ? req.user.id : null;
+    const userId = req.user.id;
     const PRICE_MAP = {
       GME: {
         price: 14.22,
@@ -103,7 +113,12 @@ router.post("/", async (req, res) => {
     });
   }
 });
+
 router.delete("/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({
@@ -112,8 +127,13 @@ router.delete("/:id", async (req, res) => {
     return;
   }
   try {
-    const userId = req.isAuthenticated() ? req.user.id : null;
-    await db.delete(watchlistTable).where(userId ? and(eq(watchlistTable.id, id), eq(watchlistTable.userId, userId)) : and(eq(watchlistTable.id, id), isNull(watchlistTable.userId)));
+    const userId = req.user.id;
+    await db.delete(watchlistTable).where(
+      and(
+        eq(watchlistTable.id, id),
+        eq(watchlistTable.userId, userId)
+      )
+    );
     res.status(204).send();
   } catch (err) {
     req.log.error({
@@ -124,4 +144,5 @@ router.delete("/:id", async (req, res) => {
     });
   }
 });
+
 export { router as watchlistRouter };

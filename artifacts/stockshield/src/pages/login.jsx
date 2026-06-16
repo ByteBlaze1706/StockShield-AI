@@ -1,8 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Shield, Lock, TrendingUp, Eye, AlertTriangle, Zap } from "lucide-react";
+import { Shield, Lock, TrendingUp, Eye, AlertTriangle, Zap, User, Mail } from "lucide-react";
 import { useAuthContext } from "@/lib/auth-context";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+
 const FEATURES = [{
   icon: Eye,
   label: "Real-time Fraud Detection",
@@ -20,19 +24,83 @@ const FEATURES = [{
   label: "ShieldBot AI",
   description: "Chat with your personal fraud analyst"
 }];
+
 export default function Login() {
   const {
     isAuthenticated,
     isLoading,
-    login
+    login,
+    register
   } = useAuthContext();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     document.documentElement.classList.add("dark");
     if (!isLoading && isAuthenticated) {
       navigate("/dashboard");
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!email) {
+      toast({ title: "Validation Error", description: "Email is required", variant: "destructive" });
+      return;
+    }
+    if (!password) {
+      toast({ title: "Validation Error", description: "Password is required", variant: "destructive" });
+      return;
+    }
+
+    if (isSignUp) {
+      if (!username) {
+        toast({ title: "Validation Error", description: "Username is required", variant: "destructive" });
+        return;
+      }
+      if (username.length < 3) {
+        toast({ title: "Validation Error", description: "Username must be at least 3 characters", variant: "destructive" });
+        return;
+      }
+      if (password.length < 6) {
+        toast({ title: "Validation Error", description: "Password must be at least 6 characters", variant: "destructive" });
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast({ title: "Validation Error", description: "Passwords do not match", variant: "destructive" });
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (isSignUp) {
+        await register(username, email, password);
+        toast({ title: "Account Created", description: "Welcome to StockShield AI!" });
+      } else {
+        await login(email, password);
+        toast({ title: "Welcome Back", description: "Logged in successfully." });
+      }
+    } catch (err) {
+      toast({
+        title: isSignUp ? "Registration Failed" : "Login Failed",
+        description: err.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return <div className="min-h-screen bg-background flex overflow-hidden">
       {/* Left panel - branding */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center p-12 overflow-hidden">
@@ -141,7 +209,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Right panel - sign in */}
+      {/* Right panel - sign in / sign up */}
       <div className="flex-1 flex items-center justify-center p-6 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/3 via-transparent to-secondary/3" />
 
@@ -164,39 +232,114 @@ export default function Login() {
 
           {/* Card */}
           <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl p-8 shadow-2xl">
-            {/* Lock icon */}
-            <div className="flex justify-center mb-6">
+            {/* Lock/User icon */}
+            <div className="flex justify-center mb-4">
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_24px_-6px_hsl(var(--primary))]">
-                <Lock className="w-7 h-7 text-primary" />
+                {isSignUp ? <User className="w-7 h-7 text-primary" /> : <Lock className="w-7 h-7 text-primary" />}
               </div>
             </div>
 
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Welcome back</h2>
-              <p className="text-muted-foreground text-sm">
-                Sign in to access your dashboard, watchlist, and AI fraud alerts.
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-foreground mb-1">
+                {isSignUp ? "Create Account" : "Welcome back"}
+              </h2>
+              <p className="text-muted-foreground text-xs">
+                {isSignUp 
+                  ? "Sign up to track stocks, customize risk alerts, and chat with AI."
+                  : "Sign in to access your dashboard, watchlist, and AI fraud alerts."}
               </p>
             </div>
 
-            {/* Sign in button */}
-            <motion.button whileHover={{
-            scale: 1.02
-          }} whileTap={{
-            scale: 0.98
-          }} onClick={login} disabled={isLoading} className="w-full py-3.5 px-6 rounded-xl font-semibold text-white text-sm
-                bg-gradient-to-r from-primary to-secondary
-                shadow-[0_0_24px_-6px_hsl(var(--primary))]
-                hover:shadow-[0_0_32px_-4px_hsl(var(--primary))]
-                disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all duration-200 flex items-center justify-center gap-2">
-              {isLoading ? <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Checking session...
-                </> : <>
-                  <Shield className="w-4 h-4" />
-                  Sign in to StockShield
-                </>}
-            </motion.button>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="username">Username</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="username"
+                      className="pl-9 bg-black/25 border-border/50 focus-visible:ring-primary focus-visible:ring-1"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    className="pl-9 bg-black/25 border-border/50 focus-visible:ring-primary focus-visible:ring-1"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="pl-9 bg-black/25 border-border/50 focus-visible:ring-primary focus-visible:ring-1"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {isSignUp && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      className="pl-9 bg-black/25 border-border/50 focus-visible:ring-primary focus-visible:ring-1"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                type="submit"
+                disabled={isSubmitting || isLoading}
+                className="w-full py-2.5 px-4 mt-2 rounded-xl font-semibold text-white text-sm
+                  bg-gradient-to-r from-primary to-secondary
+                  shadow-[0_0_24px_-6px_hsl(var(--primary))]
+                  hover:shadow-[0_0_32px_-4px_hsl(var(--primary))]
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {isSignUp ? "Creating account..." : "Signing in..."}
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-4 h-4" />
+                    {isSignUp ? "Create Account" : "Sign In"}
+                  </>
+                )}
+              </motion.button>
+            </form>
 
             {/* Divider */}
             <div className="relative my-6">
@@ -204,24 +347,17 @@ export default function Login() {
                 <div className="w-full border-t border-border/30" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-card/60 px-2 text-muted-foreground">secure authentication</span>
+                <span className="bg-card/60 px-2 text-muted-foreground">secure credentials</span>
               </div>
             </div>
 
-            {/* Trust badges */}
-            <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Encrypted</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-primary" />
-                <span>No data stored</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>Instant access</span>
-              </div>
+            <div className="text-center">
+              <button
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-xs text-primary hover:underline font-semibold"
+              >
+                {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+              </button>
             </div>
           </div>
 

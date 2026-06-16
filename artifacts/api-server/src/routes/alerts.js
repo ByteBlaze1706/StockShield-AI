@@ -1,11 +1,21 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { alertsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 const router = Router();
+
 router.get("/", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    const alerts = await db.select().from(alertsTable).orderBy(desc(alertsTable.detectedAt)).limit(50);
+    const alerts = await db.select()
+      .from(alertsTable)
+      .where(eq(alertsTable.userId, req.user.id))
+      .orderBy(desc(alertsTable.detectedAt))
+      .limit(50);
+
     res.json(alerts.map(a => ({
       id: a.id,
       ticker: a.ticker,
@@ -25,9 +35,17 @@ router.get("/", async (req, res) => {
     });
   }
 });
+
 router.get("/summary", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
-    const alerts = await db.select().from(alertsTable);
+    const alerts = await db.select()
+      .from(alertsTable)
+      .where(eq(alertsTable.userId, req.user.id));
+
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     res.json({
@@ -47,4 +65,5 @@ router.get("/summary", async (req, res) => {
     });
   }
 });
+
 export { router as alertsRouter };
