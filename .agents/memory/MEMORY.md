@@ -1,1 +1,0 @@
-- [Replit Auth implementation](replit-auth-impl.md) — OIDC/PKCE auth added; sessions+users tables in DB; replit-auth-web composite lib; protected routes redirect to /login.

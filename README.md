@@ -8,8 +8,9 @@ AI-powered market intelligence platform designed to detect suspicious trading ac
 
 ---
 
-🌐 **Live Demo**
-[Vercel Deployment](https://stock-shield-ai-api-server.vercel.app)
+🌐 **Deployments**
+- **Frontend App**: [https://stockshield.vercel.app](https://stockshield.vercel.app)
+- **Backend API**: [https://stock-shield-ai-api-server.vercel.app](https://stock-shield-ai-api-server.vercel.app)
 
 🏆 **Devpost Submission**
 https://devpost.com/software/stockshield-ai
@@ -58,12 +59,32 @@ Deliver fast and actionable intelligence designed to simplify complex market dat
 
 # 🛠️ Built With
 
-* JavaScript
-* React
-* Tailwind CSS
-* Node.js
-* Recharts
-* Vercel Deployment
+* **Frontend**: JavaScript, React, Tailwind CSS, Vite
+* **Backend**: Node.js, Express, esbuild
+* **Database**: Neon PostgreSQL, Drizzle ORM
+* **Authentication**: Credentials-based (Email/Username/Password) session auth, bcrypt (10 rounds) for secure hashing, HTTP-only secure cookies
+* **Visualizations**: Recharts
+* **Hosting**: Vercel Deployment
+
+---
+
+# ⚙️ Setup & Architecture
+
+### Database Setup (Neon PostgreSQL)
+The project is configured to use a serverless Neon PostgreSQL database via Drizzle ORM. 
+To sync schemas and deploy database changes:
+1. Ensure `DATABASE_URL` is set in your environment.
+2. Run database push command:
+   ```bash
+   pnpm --filter @workspace/db run push-force
+   ```
+
+### Authentication Architecture
+We use a self-hosted credential-based authentication system:
+- **Registration**: Hashes passwords using `bcryptjs` with 10 salt rounds before storage.
+- **Sessions**: Uses cookie-based sessions with HTTP-only cookies (`sid`) to manage active user states securely.
+- **Data Scoping**: Watchlists, alerts, settings, and chat logs are strictly isolated and queried by checking `req.user.id` on authenticated sessions.
+- **Security Guardrails**: Passwords are never stored in plaintext, logged, or returned in API responses.
 
 ---
 
